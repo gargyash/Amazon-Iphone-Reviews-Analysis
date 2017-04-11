@@ -1,0 +1,48 @@
+Needed <- c("tm", "SnowballCC", "RColorBrewer", "ggplot2", "wordcloud", "biclust", "cluster", "igraph", "fpc")   
+install.packages(Needed, dependencies=TRUE)   
+install.packages("Rcampdf", repos = "http://datacube.wu.ac.at/", type = "source")    
+install.packages("lettercloud")
+install.packages("Rcpp")
+install.packages("wordcloud2")
+library(tm)
+
+amazon<-data.frame(iphone4)
+amazonReviews <- amazon$Reviews
+convTweets <- iconv(amazonReviews, to = "utf-8", sub="")
+amazonReviews <- (convTweets[!is.na(convTweets)])
+amazonReviews<-VCorpus(VectorSource(amazonReviews))
+
+amazonReviews<-tm_map(amazonReviews,removePunctuation)
+amazonReviews<-tm_map(amazonReviews,removeNumbers)
+amazonReviews<-tm_map(amazonReviews,tolower)
+rt_rem <- c(stopwords('english'), "can", "came", "get", "got", "just", "will", "day")
+amazonReviews<-tm_map(amazonReviews,removeWords,rt_rem)
+install.packages("SnowballC")   
+library(SnowballC)   
+amazonReviews <- tm_map(amazonReviews, stemDocument)
+amazonReviews <- tm_map(amazonReviews, stripWhitespace)
+amazonReviews <- tm_map(amazonReviews, PlainTextDocument)
+
+dtm <- DocumentTermMatrix(amazonReviews, control = list(weighting = function(x) weightTfIdf(x, normalize = FALSE)))
+inspect(dtm[1:5,1:20])
+writeLines(as.character(amazonReviews[[4]]))
+dtm 
+freq <- sort(colSums(as.matrix(dtm)), decreasing=TRUE)   
+tf <- data.frame(word=names(freq), freq=freq)  
+library(ggplot2)
+
+
+#Plot frquecies
+high.freq=tail(sort(freq),n=15)
+hfp.df2=as.data.frame(sort(high.freq))
+hfp.df2$names <- rownames(hfp.df2) 
+
+ggplot(hfp.df2, aes(reorder(names,high.freq), high.freq)) +
+  geom_bar(stat="identity") + 
+  xlab("Terms") + ylab("Frequency") +
+  ggtitle("Term frequencies")
+
+library(wordcloud)
+library(wordcloud2)
+require(devtools)
+wordcloud(names(freq), freq, min.freq=100,colors = brewer.pal(8,"Dark2")) 
